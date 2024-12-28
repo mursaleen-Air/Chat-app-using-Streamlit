@@ -1,0 +1,219 @@
+import streamlit as st
+import random
+import time
+from datetime import datetime
+
+def main():
+    # Initialize session state variables
+    if "client" not in st.session_state:
+        st.session_state.client = None
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []  # Stores messages as tuples: (timestamp, username, message)
+
+    if "user_colors" not in st.session_state:
+        st.session_state.user_colors = {}  # Dictionary to store colors for each username
+
+    if "last_fetch" not in st.session_state:
+        st.session_state.last_fetch = time.time()
+
+    if "refresh_trigger" not in st.session_state:
+        st.session_state.refresh_trigger = 0  # Track refresh button clicks
+
+    st.title("Chatroom Client")
+    st.sidebar.title("Connection Settings")
+
+    # Sidebar inputs for server details
+    host = st.sidebar.text_input("Server Host", value="127.0.0.1")
+    port = st.sidebar.number_input("Server Port", value=1060, step=1, format="%d")
+    name = st.sidebar.text_input("Your Name", value="")
+
+    # Connect to the server
+    if st.sidebar.button("Connect") and not st.session_state.client:
+        # Assume Client class is implemented
+        client = Client(host, port)
+        if client.connect():
+            client.start(name)
+            st.session_state.client = client
+            st.session_state.messages.append(
+                (datetime.now().strftime("%H:%M:%S"), "System", f"Connected to {host}:{port} as {name}")
+            )
+
+    # Poll for new messages
+    if st.session_state.client:
+        current_time = time.time()
+        if current_time - st.session_state.last_fetch > 0.5:  # Poll every 0.5 seconds
+            new_message = st.session_state.client.receive_message()
+            if new_message:
+                # Assume server sends messages in format: "username: message"
+                if ": " in new_message:
+                    username, message = new_message.split(": ", 1)
+                    st.session_state.messages.append((datetime.now().strftime("%H:%M:%S"), username, message))
+                else:
+                    st.session_state.messages.append((datetime.now().strftime("%H:%M:%S"), "Unknown", new_message))
+            st.session_state.last_fetch = current_time
+
+    # Generate and render messages with random colors
+    st.write("### Messages:")
+    for msg in st.session_state.messages:
+        if len(msg) == 3:  # Ensure message has the expected format
+            timestamp, username, message = msg
+
+            # Assign random color to username if not already assigned
+            if username not in st.session_state.user_colors:
+                st.session_state.user_colors[username] = f"#{random.randint(0, 0xFFFFFF):06x}"
+
+            user_color = st.session_state.user_colors[username]
+
+            # Render message with colored username
+            st.markdown(
+                f"<div style='margin-bottom: 10px;'>"
+                f"<span style='color: gray; font-size: 0.8em;'>[{timestamp}]</span> "
+                f"<span style='color: {user_color}; font-weight: bold;'>{username}:</span> "
+                f"<span style='color: black;'>{message}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    # Input box and buttons at the bottom of the page
+    if st.session_state.client:
+        if "current_input" not in st.session_state:
+            st.session_state.current_input = ""
+
+        st.write("---")  # Separator to push input to the bottom
+        with st.container():
+            # Create a horizontal layout for the input box and buttons
+            col1, col2, col3 = st.columns([1, 8, 1])
+
+            with col1:
+                if st.button("Refresh Chat", key="refresh_button"):
+                    st.session_state.refresh_trigger += 1  # Trigger a manual refresh
+
+            with col2:
+                # Input box for typing messages
+                message = st.text_input(
+                    "",
+                    value=st.session_state.current_input,
+                    placeholder="Type your message here...",
+                    key="message_input_unique",
+                    label_visibility="collapsed",  # Hide the label for a cleaner look
+                )
+
+            with col3:
+                if st.button("Send", key="send_button"):
+                    if message.strip():
+                        st.session_state.client.send_message(f"{name}: {message.strip()}")
+                        st.session_state.messages.append((datetime.now().strftime("%H:%M:%S"), name, message.strip()))
+                        st.session_state.current_input = ""  # Reset the input field
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+import streamlit as st
+import time
+from datetime import datetime
+
+def main():
+    # Initialize session state variables
+    if "client" not in st.session_state:
+        st.session_state.client = None
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []  # Stores messages as tuples: (timestamp, username, message)
+
+    if "last_fetch" not in st.session_state:
+        st.session_state.last_fetch = time.time()
+
+    if "refresh_trigger" not in st.session_state:
+        st.session_state.refresh_trigger = 0  # Track refresh button clicks
+
+    st.title("Chatroom Client")
+    st.sidebar.title("Connection Settings")
+
+    # Sidebar inputs for server details
+    host = st.sidebar.text_input("Server Host", value="127.0.0.1")
+    port = st.sidebar.number_input("Server Port", value=1060, step=1, format="%d")
+    name = st.sidebar.text_input("Your Name", value="")
+
+    # Connect to the server
+    if st.sidebar.button("Connect") and not st.session_state.client:
+        client = Client(host, port)
+        if client.connect():
+            client.start(name)
+            st.session_state.client = client
+            st.session_state.messages.append(
+                (datetime.now().strftime("%H:%M:%S"), "System", f"Connected to {host}:{port} as {name}")
+            )
+
+    # Poll for new messages
+    if st.session_state.client:
+        current_time = time.time()
+        if current_time - st.session_state.last_fetch > 0.5:  # Poll every 0.5 seconds
+            new_message = st.session_state.client.receive_message()
+            if new_message:
+                # Assume server sends messages in format: "username: message"
+                if ": " in new_message:
+                    username, message = new_message.split(": ", 1)
+                    st.session_state.messages.append((datetime.now().strftime("%H:%M:%S"), username, message))
+                else:
+                    st.session_state.messages.append((datetime.now().strftime("%H:%M:%S"), "Unknown", new_message))
+            st.session_state.last_fetch = current_time
+
+    # Styled message container
+    st.write("### Messages:")
+    message_container = st.empty()
+    with message_container:
+        messages_html = """
+        <div style='height:400px; overflow-y:auto; padding:10px; border:1px solid #ddd; background-color:#f9f9f9;'>
+        """
+        for msg in st.session_state.messages:
+            if len(msg) == 3:  # Ensure message has the expected format
+                timestamp, username, message = msg
+                user_color = hash(username) % 360  # Generate a unique color for each username
+                messages_html += f"""
+                <p style='margin:5px 0;'>
+                    <span style='color:gray;'>[{timestamp}]</span> 
+                    <span style='color:hsl({user_color}, 70%, 50%); font-weight:bold;'>{username}:</span> 
+                    {message}
+                </p>
+                """
+        messages_html += "</div>"
+        st.markdown(messages_html, unsafe_allow_html=True)
+
+    # Input box and buttons at the bottom of the page
+    if st.session_state.client:
+        if "current_input" not in st.session_state:
+            st.session_state.current_input = ""
+
+        st.write("---")  # Separator to push input to the bottom
+        with st.container():
+            # Create a horizontal layout for the input box and buttons
+            col1, col2, col3 = st.columns([1, 8, 1])
+
+            with col1:
+                if st.button("Refresh Chat", key="refresh_button"):
+                    st.session_state.refresh_trigger += 1  # Trigger a manual refresh
+
+            with col2:
+                # Input box for typing messages
+                message = st.text_input(
+                    "",
+                    value=st.session_state.current_input,
+                    placeholder="Type your message here...",
+                    key="message_input_unique",
+                    label_visibility="collapsed",  # Hide the label for a cleaner look
+                )
+
+            with col3:
+                if st.button("Send", key="send_button"):
+                    if message.strip():
+                        st.session_state.client.send_message(f"{name}: {message.strip()}")
+                        st.session_state.messages.append((datetime.now().strftime("%H:%M:%S"), name, message.strip()))
+                        st.session_state.current_input = ""  # Reset the input field

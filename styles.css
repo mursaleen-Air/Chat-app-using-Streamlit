@@ -1,0 +1,31 @@
+.chat-container {
+    height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+.timestamp {
+    color: gray;
+    font-size: 12px;
+    margin-right: 5px;
+}
+
+.username {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.text {
+    font-size: 14px;
+    color: #333;
+}
